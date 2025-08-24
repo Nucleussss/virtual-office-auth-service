@@ -1,0 +1,43 @@
+# .gitignore
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Go compiled files
+*.test
+*.out
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Environment variables file
+# NEVER commit .env files to Git!
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker compose override files
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Database files (if any)
+*.db
+*.sqlite
