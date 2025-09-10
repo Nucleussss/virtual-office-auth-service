@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -16,61 +17,67 @@ type AuthService struct {
 	logger logger.Logger
 }
 
-func NewAuthService(repo repositories.UserRepository) *AuthService {
+func NewAuthService(repo repositories.UserRepository, logger logger.Logger) *AuthService {
 	return &AuthService{
 		repo:   repo,
-		logger: logger.NewLogger(),
+		logger: logger,
 	}
 }
 
-func (s *AuthService) Register(name, email, password string) error {
+func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest) error {
 	const op = "AuthService.Register"
 
-	s.logger.Infof("%s: Attemp to registration for %s", op, email)
+	s.logger.Infof("%s: Attemp to registration for %s", op, user.Email)
 
 	// Check if Email already exists
-	exists, err := s.repo.ExistsbyEmail(email)
+	exists, err := s.repo.ExistsbyEmail(ctx, user.Email)
 	if err != nil {
-		s.logger.Fatalf("%s: Error checking if user exists: %s %v", op, email, err)
+		s.logger.Errorf("%s: Error checking if user exists: %s %v", op, user.Email, err)
 		return fmt.Errorf("Registration unavaible")
 	}
 
 	if exists {
-		s.logger.Infof("%s: Duplicate Email found for: %s", op, email)
+		s.logger.Errorf("%s: Duplicate Email found for: %s", op, user.Email)
 		return fmt.Errorf("Email already registered")
 	}
 
 	// Hash the password before storing it in the database
-	hashPassword, err := utils.HashPassword(password)
+	hashPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		s.logger.Fatalf("%s: Error hashing password: %v", op, err)
+		s.logger.Errorf("%s: Error hashing password: %v", op, err)
 		return fmt.Errorf("Password hashing failed")
 	}
 
+	userToCreateNewUser := &models.CreateNewUser{
+		Name:         user.Name,
+		Email:        user.Email,
+		PasswordHash: hashPassword,
+	}
+
 	// Create the new user in the database
-	err = s.repo.Create(name, email, hashPassword)
+	err = s.repo.Create(ctx, userToCreateNewUser)
 	if err != nil {
-		s.logger.Fatalf("%s: Error creating user: %s %v", op, email, err)
+		s.logger.Errorf("%s: Error creating user: %s %v", op, user.Email, err)
 		return fmt.Errorf("Registration failed")
 	}
 
-	s.logger.Infof("%s: Successfully registered user: %s", op, email)
+	s.logger.Infof("%s: Successfully registered user: %s", op, user.Email)
 	return nil
 }
 
-func (s *AuthService) Login(name, email, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, userLoginRequest *models.LoginRequest) (string, error) {
 	const op = "handlers.LoginHandler"
-	s.logger.Infof("%s: Attempting to login with name: %s", op, name)
+	s.logger.Infof("%s: Attempting to login with email: %s", op, userLoginRequest.Email)
 
 	// Find by Email
-	user, err := s.repo.FindbyEmail(email)
+	user, err := s.repo.FindbyEmail(ctx, userLoginRequest.Email)
 	if err != nil {
 		s.logger.Errorf("%s: Failed to find user by email: %v", op, err)
 		return "", fmt.Errorf("Failed to find user by email")
 	}
 
 	// Verify the password hash
-	if err := utils.VerifyPassword(user.PasswordHash, password); err != nil {
+	if err := utils.VerifyPassword(user.PasswordHash, userLoginRequest.Password); err != nil {
 		s.logger.Errorf("%s: Failed to verify password: %v", op, err)
 		return "", fmt.Errorf("Failed to verify password")
 	}
@@ -94,16 +101,17 @@ func (s *AuthService) Login(name, email, password string) (string, error) {
 		return "", fmt.Errorf("Failed to generate JWT token")
 	}
 
-	s.logger.Infof("%s: Successfully logged in user: %s", op, name)
+	s.logger.Infof("%s: Successfully logged in user: %s", op, userLoginRequest.Email)
+
 	return token, nil
 }
 
-func (s *AuthService) GetProfile(userID uuid.UUID) (*models.User, error) {
+func (s *AuthService) GetProfile(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	const op = "handlers.GetProfileHandler"
 	s.logger.Infof("%s: Attempting to get Profile with id: %s", op, userID)
 
 	// Find the user by ID
-	user, err := s.repo.FindbyID(userID)
+	user, err := s.repo.FindbyID(ctx, userID)
 	if err != nil {
 		s.logger.Errorf("%s: Failed to find user by ID: %v", op, err)
 		return nil, fmt.Errorf("Failed to find user")

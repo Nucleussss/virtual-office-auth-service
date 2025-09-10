@@ -12,17 +12,19 @@ import (
 
 type AuthHandler struct {
 	authService          *service.AuthService
-	passwordResetService *service.PasswordResetService
+	passwordResetService service.PasswordResetService
 	logger               logger.Logger
 }
 
-func NewAuthHandler(authService *service.AuthService) *AuthHandler {
+func NewAuthHandler(authService *service.AuthService, passwordResetService service.PasswordResetService, logger logger.Logger) *AuthHandler {
 	return &AuthHandler{
-		authService: authService,
-		logger:      logger.NewLogger(),
+		logger:               logger,
+		authService:          authService,
+		passwordResetService: passwordResetService,
 	}
 }
 
+// Register endpoint handles POST requests to /register with a JSON payload containing name, email, and password.
 func (h *AuthHandler) Register(c *gin.Context) {
 	const op = "handlers.Register"
 	var req models.RegisterRequest
@@ -38,7 +40,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	// register the user
-	if err := h.authService.Register(req.Name, req.Email, req.PasswordHash); err != nil {
+	if err := h.authService.Register(c.Request.Context(), &req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":  "registration failed",
 			"detail": err.Error(),
@@ -56,6 +58,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	})
 }
 
+// Login function handles the login request from the client. It parses the JSON body of the request,
 func (h *AuthHandler) Login(c *gin.Context) {
 	const op = "handlers.Login"
 	var req models.LoginRequest
@@ -71,7 +74,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	// validate the user credentials
-	token, err := h.authService.Login(req.Name, req.Email, req.Password)
+	token, err := h.authService.Login(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":  "invalid credentials",
@@ -84,13 +87,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "login successful",
 		"data": gin.H{
-			"name":  req.Name,
 			"email": req.Email,
 			"token": token,
 		},
 	})
 }
 
+// get the user profile
 func (h *AuthHandler) Profile(c *gin.Context) {
 	const op = "handlers.GetProfile"
 	h.logger.Infof("%s: received request to get profile for user ID %d", op, c.MustGet("user_id").(uuid.UUID))
@@ -99,7 +102,7 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 	userID := c.MustGet("user_id").(uuid.UUID)
 
 	// retrieve the user data from the database
-	user, err := h.authService.GetProfile(userID)
+	user, err := h.authService.GetProfile(c.Request.Context(), userID)
 	if err != nil {
 		h.logger.Errorf("%s: failed to find user by ID %d", op, userID)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -114,13 +117,17 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 	})
 }
 
+// do a password reset request
 func (h *AuthHandler) RequestPasswordReset(c *gin.Context) {
 	var req models.PasswordResetRequest
 
 	//
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Errorf("Invalid password reset request: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind JSON"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "invalid request",
+			"detail": err.Error(),
+		})
 		return
 	}
 
@@ -131,17 +138,24 @@ func (h *AuthHandler) RequestPasswordReset(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"massage": "If email is correct, you will receive a password reset"})
+	c.JSON(http.StatusOK, gin.H{"message": "If email is correct, you will receive a password reset"})
 }
 
+// Reset Password
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
+
+	// get the token from the request header
 	var req models.NewPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Errorf("Invalid new password request: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to bind JSON"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":  "invalid request",
+			"detail": err.Error(),
+		})
 		return
 	}
 
+	// validate the token
 	err := h.passwordResetService.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
 	if err != nil {
 		h.logger.Errorf("Password reset failed: %v", err)
@@ -149,6 +163,6 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{"massage": "Password updated succesfully"})
+	c.JSON(200, gin.H{"message": "Password updated succesfully"})
 
 }

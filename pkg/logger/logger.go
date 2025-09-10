@@ -16,7 +16,7 @@ type logger struct {
 	stdLog *log.Logger
 }
 
-func NewLogger() *logger {
+func NewLogger() Logger {
 	return &logger{
 		stdLog: log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile),
 	}

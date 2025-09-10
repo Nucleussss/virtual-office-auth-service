@@ -36,8 +36,29 @@ func main() {
 	// Initialize auth service
 	authService := service.NewAuthService(userRepo)
 
+	// Initialize password reset repository
+	passwordResetRepo := repositories.NewPasswordRepository(dbconn)
+
+	// Initialize email service
+	emailService := service.NewSmtpEmailService(
+		config.SMTPHost,
+		config.SMTPPort,
+		config.SMTPUser,
+		config.SMTPPass,
+		config.SMTPFrom,
+	)
+
+	// Initialize password reset service
+	passwordResetService := service.NewPasswordResetService(
+		log,
+		userRepo,
+		passwordResetRepo,
+		emailService,
+		config.PasswordResetTokenExp,
+	)
+
 	// Initialize auth handler
-	authHandler := handlers.NewAuthHandler(authService)
+	authHandler := handlers.NewAuthHandler(authService, passwordResetService, log)
 
 	// Initialize gin router
 	router := gin.Default()
