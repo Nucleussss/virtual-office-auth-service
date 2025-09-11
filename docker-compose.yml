@@ -23,7 +23,6 @@ services:
         condition: service_healthy
     restart: on-failure
 
-
   auth-services:
     build:
       context: .

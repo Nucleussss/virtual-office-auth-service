@@ -1,0 +1,7 @@
+{
+    "name": "pgadmin",
+    "dockerComposeFile": ["../../docker-compose.yml"],
+	"service": "pgadmin",
+	"shutdownAction": "stopCompose",
+	"workspaceFolder": "/app"
+}

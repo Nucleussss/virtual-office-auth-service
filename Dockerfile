@@ -4,7 +4,6 @@ FROM golang:1.24-alpine AS builder
 # install depedencies
 RUN apk add --no-cache curl
 
-
 # Set working directory in container
 WORKDIR /app
 
