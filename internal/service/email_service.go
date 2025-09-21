@@ -1,7 +1,6 @@
 package service
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/smtp"
 )
@@ -30,49 +29,49 @@ func NewSmtpEmailService(host, port, username, password, from string) EmailServi
 }
 
 func (s *smtpEmailService) SendPasswordResetEmail(email, resetToken string) error {
-	// Gmail requires TLS
-	tlsconfig := &tls.Config{
-		ServerName: s.smtpHost,
-	}
+	// // Gmail requires TLS
+	// tlsconfig := &tls.Config{
+	// 	ServerName: s.smtpHost,
+	// }
 
-	// Connect to SMTP server
-	conn, err := tls.Dial("tcp", s.smtpHost+":"+s.smtpPort, tlsconfig)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
+	// // Connect to SMTP server
+	// conn, err := tls.Dial("tcp", s.smtpHost+":"+s.smtpPort, tlsconfig)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer conn.Close()
 
-	client, err := smtp.NewClient(conn, s.smtpHost)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
+	// // Create a new message
+	// client, err := smtp.NewClient(conn, s.smtpHost)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer client.Close()
 
 	// Authenticate
 	auth := smtp.PlainAuth("", s.smtpUsername, s.smtpPassword, s.smtpHost)
-	if err = client.Auth(auth); err != nil {
-		return err
-	}
 
-	// Set sender and recipient
-	if err = client.Mail(s.fromEmail); err != nil {
-		return err
-	}
-	if err = client.Rcpt(email); err != nil {
-		return err
-	}
+	// // Set sender and recipient
+	// if err = client.Mail(s.fromEmail); err != nil {
+	// 	return err
+	// }
+	// if err = client.Rcpt(email); err != nil {
+	// 	return err
+	// }
 
-	// Send email body
-	w, err := client.Data()
-	if err != nil {
-		return err
-	}
-	defer w.Close()
+	// // Send email body
+	// w, err := client.Data()
+	// if err != nil {
+	// 	return err
+	// }
+	// defer w.Close()
 
 	// Email content
 	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Password Reset\r\n\r\nReset token: %s",
 		s.fromEmail, email, resetToken)
 
-	_, err = w.Write([]byte(msg))
+	//	Send the message
+	err := smtp.SendMail(s.smtpHost, auth, s.fromEmail, []string{email}, []byte(msg))
+
 	return err
 }

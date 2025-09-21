@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// JWTMiddleware returns a Gin middleware that adds a `User
 func JWTMiddleware(secretKey string, log logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		op := "middleware.JWTMiddleware"

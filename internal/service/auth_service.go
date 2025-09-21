@@ -22,6 +22,7 @@ func NewAuthService(repo repositories.UserRepository, logger logger.Logger) *Aut
 		repo:   repo,
 		logger: logger,
 	}
+
 }
 
 func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest) error {
@@ -89,13 +90,13 @@ func (s *AuthService) Login(ctx context.Context, userLoginRequest *models.LoginR
 	}
 
 	// Parse the string ID into UUID
-	userUUID, err := uuid.Parse(user.ID)
-	if err != nil {
-		return "", fmt.Errorf("Failed to parse UUID from token")
-	}
+	// userUUID, err := uuid.Parse(user.ID)
+	// if err != nil {
+	// 	return "", fmt.Errorf("Failed to parse UUID from token")
+	// }
 
 	// Generate a JWT token for the user
-	token, err := utils.GenerateJWTToken(userUUID, jwtSecret)
+	token, err := utils.GenerateJWTToken(user.ID, jwtSecret)
 	if err != nil {
 		s.logger.Errorf("%s: Failed to generate JWT token: %v", op, err)
 		return "", fmt.Errorf("Failed to generate JWT token")

@@ -50,6 +50,7 @@ func (s *passwordResetService) RequestReset(ctx context.Context, email string) (
 		return " ", err
 	}
 
+	// Generate a secure token for the password reset request
 	token, err := utils.GenerateSecureToken(32)
 	if err != nil {
 		return " ", err
@@ -67,6 +68,7 @@ func (s *passwordResetService) RequestReset(ctx context.Context, email string) (
 		return " ", err
 	}
 
+	// Send the password reset email to the user
 	if err := s.emailService.SendPasswordResetEmail(user.Email, token); err != nil {
 		return "", err
 	}
@@ -75,6 +77,7 @@ func (s *passwordResetService) RequestReset(ctx context.Context, email string) (
 
 }
 
+// explain this function.
 func (s *passwordResetService) ResetPassword(ctx context.Context, token string, newPassword string) error {
 	reset, err := s.passwordResetRepo.FindValidToken(ctx, token)
 	if err != nil {

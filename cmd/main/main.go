@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"time"
+
 	"github.com/Nucleussss/auth-service/internal/config"
 	"github.com/Nucleussss/auth-service/internal/db"
 	"github.com/Nucleussss/auth-service/internal/handlers"
@@ -34,7 +36,7 @@ func main() {
 	userRepo := repositories.NewUserRepository(dbconn)
 
 	// Initialize auth service
-	authService := service.NewAuthService(userRepo)
+	authService := service.NewAuthService(userRepo, log)
 
 	// Initialize password reset repository
 	passwordResetRepo := repositories.NewPasswordRepository(dbconn)
@@ -48,13 +50,19 @@ func main() {
 		config.SMTPFrom,
 	)
 
+	// Parse token expiration duration
+	duration, err := time.ParseDuration(config.TokenExpiration)
+	if err != nil {
+		log.Fatalf("Error parsing token expiration duration: %v", err)
+	}
+
 	// Initialize password reset service
 	passwordResetService := service.NewPasswordResetService(
 		log,
 		userRepo,
 		passwordResetRepo,
 		emailService,
-		config.PasswordResetTokenExp,
+		duration,
 	)
 
 	// Initialize auth handler
@@ -72,8 +80,8 @@ func main() {
 	api.Use(middleware.JWTMiddleware(config.JWTSecret, log))
 	{
 		api.GET("/profile", authHandler.Profile)
-		api.GET("/request-passowrd", authHandler.ResetPassword)
-		api.GET("/request-password-reset", authHandler.RequestPasswordReset)
+		api.POST("/request-password-reset", authHandler.RequestPasswordReset)
+		api.POST("/reset-password", authHandler.ResetPassword)
 	}
 
 	// Start the server

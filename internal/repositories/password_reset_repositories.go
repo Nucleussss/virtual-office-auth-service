@@ -22,6 +22,7 @@ func NewPasswordRepository(db *sql.DB) PasswordResetRepository {
 	return &passwordResetRepository{db: db}
 }
 
+// Create a new password reset record in the database.
 func (r *passwordResetRepository) Create(ctx context.Context, reset *models.PasswordReset) error {
 	query := ` 
 		INSERT INTO password_resets (token, user_id, expired_at) 
@@ -35,6 +36,7 @@ func (r *passwordResetRepository) Create(ctx context.Context, reset *models.Pass
 	return err
 }
 
+// Find a valid password reset token in the database.
 func (r *passwordResetRepository) FindValidToken(ctx context.Context, token string) (*models.PasswordReset, error) {
 	query := `
 		SELECT * FROM password_resets 

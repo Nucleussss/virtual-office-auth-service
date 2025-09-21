@@ -1,0 +1,10 @@
+FROM migrate/migrate:latest
+
+# Install PostgreSQL client utilities (includes pg_isready)
+RUN apk add --no-cache postgresql-client
+
+COPY ./internal/db/migrations /migrations
+
+WORKDIR /migrations
+
+RUN chmod 644 /migrations/*.sql
