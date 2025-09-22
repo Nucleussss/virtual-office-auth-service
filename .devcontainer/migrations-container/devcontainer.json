@@ -1,7 +1,0 @@
-{
-    "name": "migration",
-    "dockerComposeFile": ["../../docker-compose.yml"],
-	"service": "migrations",
-	"shutdownAction": "stopCompose",
-	"workspaceFolder": "/app"
-}

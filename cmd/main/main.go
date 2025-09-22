@@ -48,6 +48,7 @@ func main() {
 		config.SMTPUser,
 		config.SMTPPass,
 		config.SMTPFrom,
+		log,
 	)
 
 	// Parse token expiration duration
@@ -75,13 +76,15 @@ func main() {
 	router.POST("/register", authHandler.Register)
 	router.POST("/login", authHandler.Login)
 
+	//
+	router.POST("/request-password-reset", authHandler.RequestPasswordReset)
+	router.POST("/reset-password", authHandler.ResetPassword)
+
 	// protected API group
 	api := router.Group("/api")
 	api.Use(middleware.JWTMiddleware(config.JWTSecret, log))
 	{
 		api.GET("/profile", authHandler.Profile)
-		api.POST("/request-password-reset", authHandler.RequestPasswordReset)
-		api.POST("/reset-password", authHandler.ResetPassword)
 	}
 
 	// Start the server

@@ -39,9 +39,7 @@ func JWTMiddleware(secretKey string, log logger.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// set the claims to the context
-		// userID := int((*claims)["user_id"].(float64))
-
+		// get the user_id from the claims
 		userIDstr, ok := (*claims)["user_id"].(string)
 		if !ok {
 			log.Errorf("%s: failed to get user_id", op)
@@ -52,6 +50,7 @@ func JWTMiddleware(secretKey string, log logger.Logger) gin.HandlerFunc {
 			return
 		}
 
+		// parse the user_id from string to UUID
 		userID, err := uuid.Parse(userIDstr)
 		if err != nil {
 			log.Errorf("%s: failed to parse user_id to uuid", op)

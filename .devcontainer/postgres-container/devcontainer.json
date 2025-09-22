@@ -1,7 +1,0 @@
-{
-    "name": "postgres",
-    "dockerComposeFile": ["../../docker-compose.yml"],
-	"service": "postgres",
-	"shutdownAction": "stopCompose",
-	"workspaceFolder": "/app"
-}

@@ -3,6 +3,8 @@ package service
 import (
 	"fmt"
 	"net/smtp"
+
+	"github.com/Nucleussss/auth-service/pkg/logger"
 )
 
 type EmailService interface {
@@ -16,62 +18,39 @@ type smtpEmailService struct {
 	smtpUsername string
 	smtpPassword string
 	fromEmail    string
+	logger       logger.Logger
 }
 
-func NewSmtpEmailService(host, port, username, password, from string) EmailService {
+func NewSmtpEmailService(host, port, username, password, from string, logger logger.Logger) EmailService {
 	return &smtpEmailService{
 		smtpHost:     host,
 		smtpPort:     port,
 		smtpUsername: username,
 		smtpPassword: password,
 		fromEmail:    from,
+		logger:       logger,
 	}
 }
 
 func (s *smtpEmailService) SendPasswordResetEmail(email, resetToken string) error {
-	// // Gmail requires TLS
-	// tlsconfig := &tls.Config{
-	// 	ServerName: s.smtpHost,
-	// }
+	const op = "emailService.SendPasswordResetEmail"
 
-	// // Connect to SMTP server
-	// conn, err := tls.Dial("tcp", s.smtpHost+":"+s.smtpPort, tlsconfig)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer conn.Close()
-
-	// // Create a new message
-	// client, err := smtp.NewClient(conn, s.smtpHost)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer client.Close()
+	// Create the full address with host and port
+	smtpAddress := s.smtpHost + ":" + s.smtpPort
 
 	// Authenticate
 	auth := smtp.PlainAuth("", s.smtpUsername, s.smtpPassword, s.smtpHost)
-
-	// // Set sender and recipient
-	// if err = client.Mail(s.fromEmail); err != nil {
-	// 	return err
-	// }
-	// if err = client.Rcpt(email); err != nil {
-	// 	return err
-	// }
-
-	// // Send email body
-	// w, err := client.Data()
-	// if err != nil {
-	// 	return err
-	// }
-	// defer w.Close()
 
 	// Email content
 	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: Password Reset\r\n\r\nReset token: %s",
 		s.fromEmail, email, resetToken)
 
 	//	Send the message
-	err := smtp.SendMail(s.smtpHost, auth, s.fromEmail, []string{email}, []byte(msg))
+	err := smtp.SendMail(smtpAddress, auth, s.fromEmail, []string{email}, []byte(msg))
+	if err != nil {
+		s.logger.Errorf("Invalid password reset request: %v ", op, err)
+		return err
+	}
 
-	return err
+	return nil
 }

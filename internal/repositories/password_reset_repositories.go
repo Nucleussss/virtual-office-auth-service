@@ -38,15 +38,13 @@ func (r *passwordResetRepository) Create(ctx context.Context, reset *models.Pass
 
 // Find a valid password reset token in the database.
 func (r *passwordResetRepository) FindValidToken(ctx context.Context, token string) (*models.PasswordReset, error) {
+	var reset models.PasswordReset
 	query := `
 		SELECT * FROM password_resets 
-		WHERE token = $1 && expired_at >= NOW()
+		WHERE token = $1 AND expired_at >= NOW()
 	`
 
-	row := r.db.QueryRowContext(ctx, query, token)
-
-	var reset *models.PasswordReset
-	err := row.Scan(
+	err := r.db.QueryRowContext(ctx, query, token).Scan(
 		&reset.Token,
 		&reset.UserID,
 		&reset.ExpiresAt,
@@ -60,12 +58,12 @@ func (r *passwordResetRepository) FindValidToken(ctx context.Context, token stri
 		return nil, err
 	}
 
-	return reset, nil
+	return &reset, nil
 }
 
 func (r *passwordResetRepository) Delete(ctx context.Context, token string) error {
 	query := `
-		DELETE * FROM password_resets
+		DELETE FROM password_resets
 		WHERE token = $1
 	`
 	_, err := r.db.ExecContext(ctx, query, token)
@@ -74,7 +72,7 @@ func (r *passwordResetRepository) Delete(ctx context.Context, token string) erro
 
 func (r *passwordResetRepository) DeleteExpiresTokens(ctx context.Context) error {
 	query := `
-		DELETE * FROM password_resets
+		DELETE FROM password_resets
 		WHERE expired_at <= NOW()
 	`
 	_, err := r.db.ExecContext(ctx, query)

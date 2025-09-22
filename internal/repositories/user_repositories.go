@@ -89,7 +89,7 @@ func (ur *userRepository) FindbyID(ctx context.Context, userID uuid.UUID) (*mode
 func (r *userRepository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error {
 	query := `
 		UPDATE users
-		SET password = $1, updated_at = NOW()
+		SET password_hash = $1, updated_at = NOW()
 		WHERE id = $2
 	`
 	_, err := r.db.ExecContext(ctx, query, passwordHash, userID)
